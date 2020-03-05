@@ -6,7 +6,7 @@ const cors = require('cors');  // To include cross origin request.
 const bcryptjs = require('bcryptjs'); // To hash & compare passwords in an encrypted way.
 const config = require('./config.json');  // has credentials.
 const product = require('./Products.json'); // External JSON data from Mockaroo.
-const dbProduct = require('./models/products.js');
+const Prod = require('./models/products.js');
 const User = require('./models/users.js');
 
 
@@ -15,6 +15,7 @@ const port = 3000;
 //Connect to db
 // const mongodbURI = 'mongodb+srv://vandy1104:pratik@1104@vandy1104-pey27.mongodb.net/test?retryWrites=true&w=majority';
 const mongodbURI = `mongodb+srv://${config.MONGO_USER}:${config.MONGO_PASSWORD}@${config.MONGO_CLUSTER_NAME}.mongodb.net/shop?retryWrites=true&w=majority`;
+// const mongodbURI = `mongodb+srv://${config.MONGO_USER}:${config.MONGO_PASSWORD}@${config.MONGO_CLUSTER_NAME}.mongodb.net/shop-products?retryWrites=true&w=majority`;
 mongoose.connect(mongodbURI, {useNewUrlParser: true, useUnifiedTopology: true})
 .then(()=> console.log('DB connected!'))
 .catch(err =>{
@@ -49,9 +50,19 @@ app.get('/allProducts', (req, res)=> {
 
 app.get('/product/p=:id', (req, res)=>{
   const idParam = req.params.id;
-  for(let i = 0; i < product.length; i++) {
+  for(var i = 0; i < product.length; i++) {
     if (idParam.toString() === product[i].id.toString()) {
       res.json(product[i]);
+    }
+  }
+});
+
+//Test to grab individual products records
+app.get('/showProduct/Prod=:Prod._id', (req, res)=>{
+  const idParam = req.params.Prod._id;
+  for(var i = 0; i < Prod.length; i++) {
+    if (idParam.toString() === Prod[i].id.toString()) {
+      res.json(Prod[i]);
     }
   }
 });
@@ -79,16 +90,16 @@ app.post('/registerUser', (req,res)=>{
 
 
 });
-
-//Get all User.
+//
+// //Get all User.
 app.get('/allUsers', (req,res)=>{
   User.find().then(result =>{
     res.send(result);
   })
 
 });
-
-//login the user
+//
+// //login the user
 app.post('/loginUser', (req,res)=>{
   User.findOne({username:req.body.username},(err,userResult)=>{
     if (userResult){
@@ -103,6 +114,66 @@ app.post('/loginUser', (req,res)=>{
   });//findOne
 });//post
 
+
+//productSchema
+
+//Add records
+app.post('/addProduct', (req, res)=>{
+  //checking if user is found in the db already.
+  Prod.findOne({name:req.body.name},(err, userResult)=>{
+    if(userResult){
+      res.send('Product entered already, Please add another one')
+    } else {
+      //const hash = bcryptjs.hashSync(req.body.password);
+      const prod = new Prod({
+        _id : new mongoose.Types.ObjectId,
+        name  : req.body.name,
+        price : req.body.price
+        // password  : hash
+      });
+      //Save to database and notify the user accordingly
+      prod.save().then(result =>{
+        res.send(result);
+      }).catch(err => res.send(err));
+    }
+  })
+});  //Post
+
+//Get all Products
+app.get('/showProducts', (req, res)=>{
+  Prod.find().then(result =>{
+    res.send(result);
+  })
+});
+
+
+//Delete a product
+app.delete('/deleteProduct/:id', (req, res)=>{
+  const idParam = req.params.id;
+  Prod.findOne({_id:idParam}, (err,productResult)=>{
+    if (productResult){
+      Prod.deleteOne({_id:idParam},err=>{
+        res.send('deleted');
+      });
+    } else{
+      res.send('not found')
+    }
+  }).catch(err => res.send(err));
+});
+
+  app.patch('/updateProduct/:id', (req,res)=>{
+    const idParam = req.params.id;
+    Prod.findById(idParam,(err,productResult)=>{
+        const updatedProduct = {
+            name : req.body.name,
+           price : req.body.price
+        // imageUrl : req.body.imageUrl
+      };
+      Prod.updateOne({_id:idParam}, updatedProduct).then(result=>{
+        res.send(result);
+      }).catch(err=>res.send(err));
+    }).catch(err=>res.send('not found'));
+  });
 
 //Keep this at the end.
 app.listen(port, () => console.log(`Mongodb app listening on port ${port}!`))
