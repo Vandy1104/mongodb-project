@@ -128,7 +128,9 @@ app.post('/addProduct', (req, res)=>{
       const prod = new Prod({
         _id : new mongoose.Types.ObjectId,
         name  : req.body.name,
-        price : req.body.price
+        price : req.body.price,
+        user_id :req.body.userId
+
         // password  : hash
       });
       //Save to database and notify the user accordingly
